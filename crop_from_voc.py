@@ -53,12 +53,16 @@ def crop_voc(images_path: Path, annotations_path: Path, out_path: Path,
                 out_img_path = out_path.joinpath(bb["class"])
                 out_img_path.mkdir(exist_ok=True)
                 out_img_path = out_img_path.joinpath(img_path.name)
-                cv2.imwrite(str(out_img_path), crop)
             else:
                 out_img_path = out_path.joinpath(
                     f"{img_path.stem}_{i}{img_path.suffix}"
                 )
+            
+            try:
                 cv2.imwrite(str(out_img_path), crop)
+            except Exception as e:
+                print(out_img_path, e)
+                continue
 
 
 
