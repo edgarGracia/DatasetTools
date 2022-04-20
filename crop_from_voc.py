@@ -41,8 +41,8 @@ def crop_voc(images_path: Path, annotations_path: Path, out_path: Path,
     for img_path in tqdm(list(images_path.iterdir())):
         
         if img_path.is_dir():
-            crop_voc(img_path, annotations_path, out_path,
-                separate_classes, recursive)
+            crop_voc(img_path, annotations_path.joinpath(img_path.name),
+                out_path, separate_classes, recursive)
             continue
 
         annot_path = annotations_path.joinpath(img_path.stem + ".xml")
@@ -66,6 +66,7 @@ def crop_voc(images_path: Path, annotations_path: Path, out_path: Path,
                 )
             
             try:
+                assert not out_img_path.exists()
                 cv2.imwrite(str(out_img_path), crop)
             except Exception as e:
                 print(out_img_path, e)
