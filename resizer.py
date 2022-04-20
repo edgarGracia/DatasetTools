@@ -36,11 +36,9 @@ def resize_images(path_in: Path, path_out: Path, factor: float = None,
             dirs_list.append(img_path)
             continue
         else:
-            try:
-                img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
-                assert img is not None
-            except Exception as e:
-                print(e)
+            img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
+            if img is not None:
+                print(f"Error reading {img_path}")
                 continue
         
         # Calculate size
