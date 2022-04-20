@@ -1,3 +1,4 @@
+from dataclasses import is_dataclass
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List
@@ -31,13 +32,19 @@ def read_annotation(path: Path) -> List[dict]:
 
 
 def crop_voc(images_path: Path, annotations_path: Path, out_path: Path,
-    separate_classes: bool = False):
+    separate_classes: bool = False, recursive: bool = False):
     
     assert images_path != out_path
 
     out_path.mkdir(exist_ok=True, parents=True)
 
     for img_path in tqdm(list(images_path.iterdir())):
+        
+        if img_path.is_dir():
+            crop_voc(img_path, annotations_path, out_path,
+                separate_classes, recursive)
+            continue
+
         annot_path = annotations_path.joinpath(img_path.stem + ".xml")
         bbs = read_annotation(annot_path)
         
@@ -91,7 +98,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Separate images by its class on different folders"
     )
+    parser.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Run recursively"
+    )
     args = parser.parse_args()
 
     crop_voc(args.images, args.annotations, args.output_path,
-        args.separate_classes)
+        args.separate_classes, args.recursive)
