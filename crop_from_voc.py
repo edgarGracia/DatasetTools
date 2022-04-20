@@ -45,7 +45,12 @@ def crop_voc(images_path: Path, annotations_path: Path, out_path: Path,
                 out_path, separate_classes, recursive)
             continue
 
-        annot_path = annotations_path.joinpath(img_path.stem + ".xml")
+        try:
+            annot_path = annotations_path.joinpath(img_path.stem + ".xml")
+        except Exception as e:
+            print(e)
+            continue
+        
         bbs = read_annotation(annot_path)
         
         img = cv2.imread(str(img_path))
