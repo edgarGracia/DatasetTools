@@ -42,7 +42,7 @@ def crop_voc(images_path: Path, annotations_path: Path, out_path: Path,
         
         if img_path.is_dir():
             crop_voc(img_path, annotations_path.joinpath(img_path.name),
-                out_path, separate_classes, recursive)
+                out_path.joinpath(img_path.name), separate_classes, recursive)
             continue
 
         annot_path = annotations_path.joinpath(img_path.stem + ".xml")
