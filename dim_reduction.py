@@ -37,8 +37,8 @@ def load_data(root_path: Path, subsample: int = None, classes: list = None):
     return x, y
 
 
-def plot_tsne(x: np.ndarray, y: np.ndarray,
-    out_path: Path = None, scale: bool = True):
+def plot_tsne(x: np.ndarray, y: np.ndarray, out_path: Path = None,
+    scale: bool = True, title: str = None):
     
     palette = sns.color_palette("colorblind", len(set(y)))
 
@@ -48,13 +48,17 @@ def plot_tsne(x: np.ndarray, y: np.ndarray,
     tsne = TSNE()
     X_embedded = tsne.fit_transform(x)
     
-    sns.scatterplot(
+    plot = sns.scatterplot(
         X_embedded[:,0],
         X_embedded[:,1],
         hue=y,
         legend='full',
         palette=palette
     )
+
+    if title is not None:
+        plot.set_title(title)
+
     if out_path is not None:
         plt.savefig(str(out_path))
     else:
@@ -62,8 +66,8 @@ def plot_tsne(x: np.ndarray, y: np.ndarray,
     plt.close()
     
 
-def plot_umap(x: np.ndarray, y: np.ndarray,
-    out_path: Path = None, scale: bool = True):
+def plot_umap(x: np.ndarray, y: np.ndarray, out_path: Path = None,
+    scale: bool = True, title: str = None):
     
     import umap # pip install umap-learn
     
@@ -75,13 +79,17 @@ def plot_umap(x: np.ndarray, y: np.ndarray,
     reducer = umap.UMAP()
     embedding = reducer.fit_transform(x)
     
-    sns.scatterplot(
+    plot = sns.scatterplot(
         embedding[:,0],
         embedding[:,1],
         hue=y,
         legend='full',
         palette=palette
     )
+    
+    if title is not None:
+        plot.set_title(title)
+
     if out_path is not None:
         plt.savefig(str(out_path))
     else:
@@ -130,6 +138,11 @@ if __name__ == "__main__":
         required=False
     )
     parser.add_argument(
+        "--title",
+        required=False,
+        help="Plot title"
+    )
+    parser.add_argument(
         "--subsample",
         help="Take only n random samples from each class",
         type=int,
@@ -160,8 +173,8 @@ if __name__ == "__main__":
     if args.tsne:
         out = (args.output.parent.joinpath("tsne_" + args.output.name)
             if args.umap and args.output is not None else args.output)
-        plot_tsne(x, y, out_path=out, scale=args.scale)
+        plot_tsne(x, y, out_path=out, scale=args.scale, title=args.title)
     if args.umap:
         out = (args.output.parent.joinpath("umap_" + args.output.name)
             if args.tsne and args.output is not None else args.output)
-        plot_umap(x, y, out_path=out, scale=args.scale)
+        plot_umap(x, y, out_path=out, scale=args.scale, title=args.title)
