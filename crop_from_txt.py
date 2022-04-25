@@ -1,4 +1,3 @@
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List
 from tqdm import tqdm
@@ -7,31 +6,34 @@ import cv2
 
 
 
-def read_annotation(path: Path) -> List[dict]:
-    tree = ET.parse(path)
-    root = tree.getroot()
+def read_annotation(path: Path, is_xywh: bool = False,
+    separator: str = " ",) -> List[dict]:
 
-    size = root.find("size")
-    width = int(size.find("width").text)
-    height = int(size.find("height").text)
-
+    with open(path, "r") as f:
+        lines = [i.strip() for i in f.readlines()]
+    
     bbs = []
-    for obj in root.iter("object"):
-        bb = {"class": obj.find("name").text}
+    for line in lines:
+        bb = line.split(separator)
+        
+        label = bb[0]
+        xmin, ymin, xmax, ymax = [int(i) for i in bb[-4:]]
+        
+        if is_xywh:
+            xmax += xmin
+            ymax += ymin
 
-        bndbox = obj.find("bndbox")
-        bb["xmin"] = max(int(bndbox.find("xmin").text), 0)
-        bb["xmax"] = min(int(bndbox.find("xmax").text), width)
-        bb["ymin"] = max(int(bndbox.find("ymin").text), 0)
-        bb["ymax"] = min(int(bndbox.find("ymax").text), height)
-
-        bbs.append(bb)
+        bbs.append({
+            "class": label, "xmin": xmin, "ymin": ymin,
+            "xmax": xmax, "ymax": ymax
+        })
 
     return bbs
 
 
-def crop_voc(images_path: Path, annotations_path: Path, out_path: Path,
-    separate_classes: bool = False, recursive: bool = False):
+def crop_txt(images_path: Path, annotations_path: Path, out_path: Path,
+    separate_classes: bool = False, recursive: bool = False,
+    is_xywh: bool = False, separator: str = " "):
     
     assert images_path != out_path
 
@@ -40,14 +42,15 @@ def crop_voc(images_path: Path, annotations_path: Path, out_path: Path,
     for img_path in tqdm(list(images_path.iterdir())):
         
         if img_path.is_dir():
-            crop_voc(img_path, annotations_path.joinpath(img_path.name),
-                out_path.joinpath(img_path.name), separate_classes, recursive)
+            crop_txt(img_path, annotations_path.joinpath(img_path.name),
+                out_path.joinpath(img_path.name), separate_classes, recursive,
+                is_xywh, separator)
             continue
 
-        annot_path = annotations_path.joinpath(img_path.stem + ".xml")
+        annot_path = annotations_path.joinpath(img_path.stem + ".txt")
         
         try:
-            bbs = read_annotation(annot_path)
+            bbs = read_annotation(annot_path, is_xywh, separator)
         except Exception as e:
             print(e)
             continue
@@ -79,7 +82,14 @@ def crop_voc(images_path: Path, annotations_path: Path, out_path: Path,
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="""
-    Crop images with the bounding boxes of VOC annotations""")
+    Crop images with the bounding boxes on txt files.
+    Annotations should have the following format:
+    
+    <label> [<score>] <xmin> <ymin> <xmax|width> <ymax|height>
+    <label> [<score>] <xmin> <ymin> <xmax|width> <ymax|height>
+    ...
+
+    """, formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument(
         "images",
@@ -106,7 +116,19 @@ if __name__ == "__main__":
         action="store_true",
         help="Run recursively"
     )
+    parser.add_argument(
+        "--xywh",
+        action="store_true",
+        help=("Bounding box format is 'xmin ymin width height'\n" + 
+        "Default is 'xmin ymin xmax ymax'")
+    )
+    parser.add_argument(
+        "--separator",
+        default=" ",
+        help="Data seperator. Default to ' '"
+    )
     args = parser.parse_args()
 
-    crop_voc(args.images, args.annotations, args.output_path,
-        args.separate_classes, args.recursive)
+    crop_txt(args.images, args.annotations, args.output_path,
+        args.separate_classes, args.recursive, is_xywh=args.xywh,
+        separator=args.separator)
