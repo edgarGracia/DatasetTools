@@ -73,7 +73,7 @@ def split_coco(dataset_path: Path, images1_path: Path, out1_path: Path,
         new_annots += [_filter(data_annots, ids[2], "image_id")]
 
     # Save the new json datasets
-    save_coco(out1_path, new_images, data_cats, new_annots)
+    save_coco(out1_path, new_images[0], data_cats, new_annots[0])
     if images2_path is not None:
         save_coco(out2_path, new_images[1], data_cats, new_annots[1])
     if images3_path is not None:
