@@ -37,7 +37,7 @@ def resize_images(path_in: Path, path_out: Path, factor: float = None,
             continue
         else:
             img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
-            if img is not None:
+            if img is None:
                 print(f"Error reading {img_path}")
                 continue
         
@@ -134,7 +134,7 @@ if __name__ == "__main__":
         "-r",
         "--recursive",
         action="store_true",
-        help="Traverse all the folder on the input-path"
+        help="Traverse all the folder on the input path"
     )
     parser.add_argument(
         "-k",
