@@ -86,6 +86,73 @@ def get_img_stats(img_root_path: Path, normalize: bool = False,
     return None  
 
 
+def get_img_stats_one_pass(img_root_path: Path, normalize: bool = False,
+    recursive: bool = False) -> dict:
+    
+    count_img = 0
+    count_pix = 0
+    old_mean = np.zeros((4))
+    mean = np.zeros((4))
+    old_std = np.zeros((4))
+    std = np.zeros((4))
+    img_sizes = []
+
+    if recursive:
+        img_paths = [i for i in img_root_path.rglob("*") if i.is_file()]
+    else:
+        img_paths = [i for i in img_root_path.iterdir() if i.is_file()]
+
+    for img_path in tqdm(img_paths):
+        img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
+        if img is None:
+            print(f"Unable to read {img_path}")
+            continue
+        
+        img = np.stack((img,)*4, axis=-1) if img.ndim == 2 else img
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2RGBA) if img.shape[-1] == 3 else img
+        
+        count_img += 1
+        img_sizes.append(np.array(img.shape[:2]))
+
+        for i, p in enumerate(img.reshape(img.shape[0] * img.shape[1], 4)):
+            count_pix += 1
+
+            if count_pix == 1:
+                old_mean = mean = p
+                old_std = 0
+
+            mean = old_mean + (p - old_mean) / count_img
+            std = old_std + (p - old_mean) * (p - mean)
+            
+            old_mean = mean
+            old_std = std
+        
+    if count_img != 0:
+        std = np.sqrt(std / (count_img - 1))
+
+        # BGRA to RGBA
+        mean = mean[[2,1,0,3]]
+        std = std[[2,1,0,3]]
+
+        if normalize:
+            mean = mean / 255
+            std = std / 255
+
+        mean = np.around(mean, 3)
+        std = np.around(std, 3)
+        img_sizes = np.array(img_sizes)
+        
+        return {
+            "count_img": count_img,
+            "mean": mean,
+            "std": std,
+            "img_sizes": img_sizes
+        }
+
+    return None  
+
+
+
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="""Calculate the mean, std
@@ -111,6 +178,10 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
+    stats = get_img_stats_one_pass(args.input_path, args.normalize, args.recursive)
+    if stats is not None:
+        print_stats(stats)
+
     stats = get_img_stats(args.input_path, args.normalize, args.recursive)
     if stats is not None:
         print_stats(stats)
