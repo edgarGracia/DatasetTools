@@ -114,6 +114,7 @@ def get_img_stats_one_pass(img_root_path: Path, normalize: bool = False,
         count_img += 1
         img_sizes.append(np.array(img.shape[:2]))
 
+        # TODO: vectorize
         for i, p in enumerate(img.reshape(img.shape[0] * img.shape[1], 4)):
             count_pix += 1
 
@@ -121,14 +122,14 @@ def get_img_stats_one_pass(img_root_path: Path, normalize: bool = False,
                 old_mean = mean = p
                 old_std = 0
 
-            mean = old_mean + (p - old_mean) / count_img
+            mean = old_mean + (p - old_mean) / count_pix
             std = old_std + (p - old_mean) * (p - mean)
             
             old_mean = mean
             old_std = std
-        
-    if count_img != 0:
-        std = np.sqrt(std / (count_img - 1))
+               
+    if count_pix != 0:
+        std = np.sqrt(std / (count_pix - 1))
 
         # BGRA to RGBA
         mean = mean[[2,1,0,3]]
