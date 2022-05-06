@@ -1,8 +1,8 @@
-from operator import index
 from pathlib import Path
 import numpy as np
 import argparse
 import random
+import math
 import json
 
 
@@ -34,7 +34,7 @@ def split_coco(dataset_path: Path, train_split: float, val_split: float,
         random.shuffle(indexes)
     
     train_end = int(len(indexes) * train_split)
-    val_end = train_end + int(len(indexes) * val_split)
+    val_end = train_end + math.ceil(len(indexes) * val_split)
     train_indexes = indexes[:train_end]
     val_indexes = indexes[train_end:val_end]
     test_indexes = indexes[val_end:]
