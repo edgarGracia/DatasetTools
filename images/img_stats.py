@@ -167,7 +167,7 @@ def compute_img_stats(img_root_path: Path, stats_todo: dict,
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="""Calculate and plot some
-        stats about and image or all the images on a directory""")
+        stats about an image or all the images on a directory""")
     
     parser.add_argument(
         "input_path",
