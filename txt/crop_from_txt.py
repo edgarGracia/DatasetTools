@@ -6,22 +6,24 @@ import cv2
 
 
 
-def read_annotation(path: Path, is_xywh: bool = False,
+def read_annotation(path: Path, is_xyxy: bool = False,
     separator: str = " ",) -> List[dict]:
 
-    with open(path, "r") as f:
-        lines = [i.strip() for i in f.readlines()]
+    lines = path.read_text().strip().split("\n")
     
     bbs = []
     for line in lines:
         bb = line.split(separator)
         
         label = bb[0]
-        xmin, ymin, xmax, ymax = [int(i) for i in bb[-4:]]
+        xmin, ymin, xmax, ymax = [float(i) for i in bb[-4:]]
         
-        if is_xywh:
-            xmax += xmin
-            ymax += ymin
+        if not is_xyxy:
+            cx, cy, w, h = xmin, ymin, xmax, ymax
+            xmin = cx - w/2
+            ymin = cy - h/2
+            xmax = cx + w/2
+            ymax = cy + h/2
 
         bbs.append({
             "class": label, "xmin": xmin, "ymin": ymin,
@@ -32,8 +34,8 @@ def read_annotation(path: Path, is_xywh: bool = False,
 
 
 def crop_txt(images_path: Path, annotations_path: Path, out_path: Path,
-    separate_classes: bool = False, recursive: bool = False,
-    is_xywh: bool = False, separator: str = " "):
+    separate_classes: bool = False, is_xyxy: bool = False,
+    is_absolute: bool = False, separator: str = " ", recursive: bool = False):
     
     assert images_path != out_path
 
@@ -42,15 +44,16 @@ def crop_txt(images_path: Path, annotations_path: Path, out_path: Path,
     for img_path in tqdm(list(images_path.iterdir())):
         
         if img_path.is_dir():
-            crop_txt(img_path, annotations_path.joinpath(img_path.name),
-                out_path.joinpath(img_path.name), separate_classes, recursive,
-                is_xywh, separator)
+            if recursive:
+                crop_txt(img_path, annotations_path.joinpath(img_path.name),
+                    out_path.joinpath(img_path.name), separate_classes,
+                    is_xyxy, is_absolute, separator, recursive)
             continue
 
         annot_path = annotations_path.joinpath(img_path.stem + ".txt")
         
         try:
-            bbs = read_annotation(annot_path, is_xywh, separator)
+            bbs = read_annotation(annot_path, is_xyxy, separator)
         except Exception as e:
             print(e)
             continue
@@ -61,7 +64,17 @@ def crop_txt(images_path: Path, annotations_path: Path, out_path: Path,
             continue
             
         for i, bb in enumerate(bbs):
-            crop = img[bb["ymin"]:bb["ymax"], bb["xmin"]:bb["xmax"], :]
+            if not is_absolute:
+                bb["xmin"] = bb["xmin"] * img.shape[1]
+                bb["ymin"] = bb["ymin"] * img.shape[0]
+                bb["xmax"] = min(bb["xmax"] * img.shape[1], img.shape[1])
+                bb["ymax"] = min(bb["ymax"] * img.shape[0], img.shape[0])
+                
+            crop = img[
+                int(bb["ymin"]):int(bb["ymax"]),
+                int(bb["xmin"]):int(bb["xmax"]),
+                :
+            ]
 
             out_name = f"{img_path.stem}_{i}{img_path.suffix}"
             if separate_classes:
@@ -85,8 +98,8 @@ if __name__ == "__main__":
     Crop images with the bounding boxes on txt files.
     Annotations should have the following format:
     
-    <label> [<score>] <xmin> <ymin> <xmax|width> <ymax|height>
-    <label> [<score>] <xmin> <ymin> <xmax|width> <ymax|height>
+    <label> [<score>] <x-cent|xmin> <y-cent|ymin> <width|xmax> <height|ymax>
+    <label> [<score>] <x-cent|xmin> <y-cent|ymin> <width|xmax> <height|ymax>
     ...
 
     """, formatter_class=argparse.RawTextHelpFormatter)
@@ -117,10 +130,15 @@ if __name__ == "__main__":
         help="Run recursively"
     )
     parser.add_argument(
-        "--xywh",
+        "--xyxy",
         action="store_true",
-        help=("Bounding box format is 'xmin ymin width height'\n" + 
-        "Default is 'xmin ymin xmax ymax'")
+        help=("Bounding box format is '<xmin> <ymin> <xmax> <ymax>\n" +
+            "Default is '<x-cent> <y-cent> <width> <height>'")
+    )
+    parser.add_argument(
+        "--is-absolute",
+        action="store_true",
+        help=("Coordinates are absolute")
     )
     parser.add_argument(
         "--separator",
@@ -129,6 +147,13 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    crop_txt(args.images, args.annotations, args.output_path,
-        args.separate_classes, args.recursive, is_xywh=args.xywh,
-        separator=args.separator)
+    crop_txt(
+        images_path = args.images,
+        annotations_path = args.annotations,
+        out_path = args.output_path,
+        separate_classes = args.separate_classes,
+        is_xyxy = args.xyxy,
+        is_absolute = args.is_absolute,
+        separator = args.separator,
+        recursive = args.recursive
+    )
