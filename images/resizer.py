@@ -30,7 +30,7 @@ def resize_images(path_in: Path, path_out: Path, factor: float = None,
             else math.ceil(math.log10(num_imgs)))
 
     dirs_list = []
-    for img_path in tqdm(images_paths):
+    for img_path in tqdm(images_paths, desc=str(path_in)):
         # Read image
         if img_path.is_dir():
             dirs_list.append(img_path)
