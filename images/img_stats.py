@@ -148,17 +148,20 @@ def compute_img_stats(img_root_path: Path, stats_todo: dict,
     else:
         img_paths = [i for i in img_root_path.iterdir() if i.is_file()]
 
-    for img_path in tqdm(img_paths):
-        img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
-        if img is None:
-            print(f"Unable to read {img_path}")
-            continue
-        
-        img = np.stack((img,)*4, axis=-1) if img.ndim == 2 else img
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2RGBA) if img.shape[-1] == 3 else img
+    try:
+        for img_path in tqdm(img_paths):
+            img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
+            if img is None:
+                print(f"Unable to read {img_path}")
+                continue
+            
+            img = np.stack((img,)*4, axis=-1) if img.ndim == 2 else img
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2RGBA) if img.shape[-1] == 3 else img
 
-        for s in stats_todo.values():
-            s.update(img)
+            for s in stats_todo.values():
+                s.update(img)
+    except KeyboardInterrupt:
+        pass
     
     return stats_todo
 
