@@ -96,7 +96,8 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="""
     Crop images with the bounding boxes on txt files.
-    Annotations should have the following format:
+    There must be an annotation file for each image with the same name and
+    with the following format:
     
     <label> [<score>] <x-cent|xmin> <y-cent|ymin> <width|xmax> <height|ymax>
     <label> [<score>] <x-cent|xmin> <y-cent|ymin> <width|xmax> <height|ymax>
@@ -115,7 +116,7 @@ if __name__ == "__main__":
         help="Annotations path"
     )
     parser.add_argument(
-        "output_path",
+        "output-path",
         type=Path,
         help="Path to save the cropped images"
     )
@@ -131,19 +132,20 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--xyxy",
-        action="store_true",
+        action="store-true",
         help=("Bounding box format is '<xmin> <ymin> <xmax> <ymax>\n" +
             "Default is '<x-cent> <y-cent> <width> <height>'")
     )
     parser.add_argument(
         "--is-absolute",
         action="store_true",
-        help=("Coordinates are absolute")
+        help=("""Coordinates are absolute. If not set coordinates must be
+            relative to the image size""")
     )
     parser.add_argument(
         "--separator",
         default=" ",
-        help="Data seperator. Default to ' '"
+        help="Data separator. Default to ' '"
     )
     args = parser.parse_args()
 
