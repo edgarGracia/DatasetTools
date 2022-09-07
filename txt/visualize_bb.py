@@ -76,6 +76,9 @@ def plot_bb(images_path: Path, annotations_path: Path,
 
     for img_path in tqdm(sorted(list(images_path.iterdir()))):
         img = cv2.imread(str(img_path))
+        if img is None:
+            print(f"Can not read image {img_path}")
+            continue
         
         # Parse annotation
         annot_path = annotations_path.joinpath(img_path.stem + ".txt")
