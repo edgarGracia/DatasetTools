@@ -97,7 +97,7 @@ if __name__ == "__main__":
     )
     ap.add_argument(
         "--silent",
-        action="store_true"
+        action="store_true",
         help="Do not print anything"
     )
     
