@@ -17,7 +17,7 @@ from pycocotools.coco import COCO
 DRAW_SEG = True
 SEG_ALPHA = 0.5
 
-DRAW_BB = False
+DRAW_BB = True
 BB_COLOR = (255,200,255)
 BB_THICKNESS = 3
 
@@ -43,7 +43,7 @@ def _parse_coco(coco_path: Path) -> dict:
     return json.loads(coco_path.read_text())
 
 
-def _draw_instances(img_path: Path(), instances: dict,
+def _draw_instances(img_path: Path(), instances: List[dict],
     out_path: Path = None, show: bool = False):
     
     img = cv2.imread(str(img_path))
@@ -58,7 +58,18 @@ def _draw_instances(img_path: Path(), instances: dict,
             int(box[3]) + int(box[1]),
         )
         cx, cy = int((box[0] + box[2])/2), int((box[1] + box[3])/2)
-        mask = Mask.decode(ins["segmentation"])
+        
+        if isinstance(ins["segmentation"], dict):
+            mask = Mask.decode(ins["segmentation"])
+        else:
+            rles = Mask.frPyObjects(
+                ins["segmentation"],
+                img.shape[0],
+                img.shape[1]
+            )
+            rle = Mask.merge(rles)
+            mask = Mask.decode(rle)
+
         category_id = ins["category_id"]
 
         # Draw segmentation
@@ -135,26 +146,39 @@ def visualize_coco(images_path: Path, annots_path: Path,
             (images_path.parent != out_path or images_path.is_dir()))
         out_path.mkdir(exist_ok=True, parents=True)
 
-    if images_path.is_file():
-        # Single image
-        assert annots_path.is_file()
-        _draw_instances(images_path, annots_path, out_path, show)
+    images_list = (
+        [images_path] if images_path.is_file() else
+        list(images_path.iterdir())
+    )
+    
+    if annots_path.is_file():
+        # Dataset json
+        dataset = COCO(annots_path)
+        images_id = dataset.getImgIds()
+        images_names = [i.name for i in images_list]
+        coco_images = [
+            i for i in dataset.loadImgs(images_id)
+            if i["file_name"] in images_names
+        ]
+        for coco_img in tqdm(coco_images):
+            anns_ids = dataset.getAnnIds(imgIds=[coco_img["id"]])
+            anns = dataset.loadAnns(anns_ids)
+            _draw_instances(
+                images_list[images_names.index(coco_img["file_name"])],
+                anns,
+                out_path,
+                show
+            )
     else:
-        images_list = list(images_path.iterdir())
-        if annots_path.is_file():
-            # Multiple images, dataset json
-            dataset = COCO(annots_path)
-            # TODO
-        else:
-            # Multiple images, multiple json
-            annots_dict = {
-                i: annots_path.joinpath(i.stem+".json")
-                for i in images_list
-                if annots_path.joinpath(i.stem+".json").exists()
-            }
-            for image_path, annot_path in tqdm(annots_dict.items()):
-                instances = _parse_coco(annot_path)
-                _draw_instances(image_path, instances, out_path, show)
+        # Results json
+        annots_dict = {
+            i: annots_path.joinpath(i.stem+".json")
+            for i in images_list
+            if annots_path.joinpath(i.stem+".json").exists()
+        }
+        for image_path, annot_path in tqdm(annots_dict.items()):
+            instances = _parse_coco(annot_path)
+            _draw_instances(image_path, instances, out_path, show)
 
 
 
