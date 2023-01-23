@@ -7,6 +7,10 @@ import cv2
 
 IMG_EXT = (".png", ".jpg", ".jpeg", ".tiff")
 
+# TODO: total count
+# TODO: plot appearance
+# TODO: output argument
+# TODO: auto train val test
 
 def print_stats(results: dict):
     print(f"Num classes: {len(results['classes'])}")
