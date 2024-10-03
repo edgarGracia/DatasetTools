@@ -8,7 +8,8 @@ import cv2
 
 def video2img(video_path: Path, output_path: Path,
     skip_frames: int = 0, img_extension: str = '.jpg',
-    start_frame: int = 0, end_frame: int = float("inf")):
+    start_frame: int = 0, end_frame: int = float("inf"),
+    silent: bool = False):
 
     # Open video
     video = cv2.VideoCapture(str(video_path))
@@ -35,7 +36,7 @@ def video2img(video_path: Path, output_path: Path,
             ret, img = video.read()
             f += 1
         assert ret, "Start frame is greater than video length"
-    pbar = tqdm(total=length)
+    pbar = tqdm(total=length, disable=silent, unit="f")
     while ret:
         img_path = output_path.joinpath(
             str(f).zfill(leading_zeros)+img_extension)
@@ -59,16 +60,48 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(
         description="Save the frames of a video in images")
 
-    ap.add_argument("video", type=Path, help="Path to the video")
-    ap.add_argument("output", type=Path, help="Output folder")
-    ap.add_argument("-s", "--skip", type=int, default=0, help="Skip n frames")
-    ap.add_argument("-e", "--extension", default=".jpg",
-        help="Output image extension. e.g. '.jpg'")
-    ap.add_argument("--start-frame", type=int, default=0, help="Start frame")
-    ap.add_argument("--end-frame", type=int, default=float("inf"),
-        help="End frame")
+    ap.add_argument(
+        "video",
+        type=Path,
+        help="Path to the video"
+    )
+    ap.add_argument(
+        "output",
+        type=Path,
+        help="Output folder"
+    )
+    ap.add_argument(
+        "-s",
+        "--skip",
+        type=int,
+        default=0,
+        help="Skip n frames"
+    )
+    ap.add_argument(
+        "-e",
+        "--extension",
+        default=".jpg",
+        help="Output image extension. e.g. '.jpg'"
+    )
+    ap.add_argument(
+        "--start-frame",
+        type=int,
+        default=0,
+        help="Start frame"
+    )
+    ap.add_argument(
+        "--end-frame",
+        type=int,
+        default=float("inf"),
+        help="End frame"
+    )
+    ap.add_argument(
+        "--silent",
+        action="store_true",
+        help="Do not print anything"
+    )
     
     args = ap.parse_args()
     
     video2img(args.video, args.output, args.skip, args.extension,
-        args.start_frame, args.end_frame)
+        args.start_frame, args.end_frame, args.silent)

@@ -34,7 +34,7 @@ def read_annotation(path: Path, is_xyxy: bool = False,
             xmin, ymin, xmax, ymax = [float(i) for i in bb[1:]]
         elif len(bb) == 6:
             label = bb[0]
-            score, xmin, ymin, xmax, ymax = [float(i) for i in bb[1:]]
+            xmin, ymin, xmax, ymax, score = [float(i) for i in bb[1:]]
         else:
             print(f"{path} bad annotation format!!")
             return []
@@ -59,7 +59,8 @@ def plot_bb(images_path: Path, annotations_path: Path,
     is_xyxy: bool = False, is_absolute: bool = False, separator: str = " ",
     show: bool = True, show_score: bool = True, show_label: bool = True,
     color: Union[tuple, None] = None, label_mapping: Union[Path, None] = None,
-    bb_thickness: int = 2, only_labels: Union[list, None] = None):
+    bb_thickness: int = 2, only_labels: Union[list, None] = None,
+    output_video_path: Union[Path, None] = None):
     
     # Parse the label mapping file
     if label_mapping is not None:
@@ -69,8 +70,11 @@ def plot_bb(images_path: Path, annotations_path: Path,
     if out_path is not None:
         assert images_path != out_path
         out_path.mkdir(exist_ok=True, parents=True)
+    
+    if output_video_path is not None:
+        out_vid = None
 
-    for img_path in tqdm(list(images_path.iterdir())):
+    for img_path in tqdm(sorted(list(images_path.iterdir()))):
         img = cv2.imread(str(img_path))
         if img is None:
             print(f"Can not read image {img_path}")
@@ -146,7 +150,7 @@ def plot_bb(images_path: Path, annotations_path: Path,
             
             if label:
                 (text_w, text_h), _ = cv2.getTextSize(
-                    bb["label"],
+                    label,
                     CV2_FONT,
                     FONT_SCALE,
                     FONT_THICK
@@ -177,6 +181,18 @@ def plot_bb(images_path: Path, annotations_path: Path,
             plt.show()
         if out_path is not None:
             cv2.imwrite(str(out_path.joinpath(img_path.name)), img)
+        if output_video_path is not None:
+            if out_vid is None:
+                out_vid = cv2.VideoWriter(
+                    str(output_video_path),
+                    cv2.VideoWriter_fourcc(*'MJPG'),
+                    25,
+                    (img.shape[1], img.shape[0])
+                )
+            out_vid.write(img)
+    
+    if output_video_path is not None:
+        out_vid.release()
 
 
 if __name__ == "__main__":
@@ -209,10 +225,16 @@ if __name__ == "__main__":
         help="Path to save the images with the bounding boxes"
     )
     parser.add_argument(
+        "--output-video",
+        type=Path,
+        default=None,
+        help="Video file"
+    )
+    parser.add_argument(
         "--min-score",
         type=float,
-        default=0.5,
-        help="The minimum score the show a bounding box"
+        default=-1.0,
+        help="The minimum score to show a bounding box"
     )
     parser.add_argument(
         "--xyxy",
@@ -293,5 +315,6 @@ if __name__ == "__main__":
         color = color,
         label_mapping = args.label_mapping,
         bb_thickness =args.box_thickness,
-        only_labels = only_labels
+        only_labels = only_labels,
+        output_video_path = args.output_video
     )
