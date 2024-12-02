@@ -7,15 +7,15 @@ import argparse
 from pycocotools.coco import COCO
 
 
-
 def coco_to_mask(annots_path: Path, out_path: Path,
-    class_multiplier: int = 1, remap_class: bool = False,
-    remap_id: bool = False, add_id: bool = False, i32: bool = False):
+                 class_multiplier: int = 1, remap_class: bool = False,
+                 remap_id: bool = False, add_id: bool = False,
+                 i32: bool = False, binary: bool = False):
 
     dataset = COCO(annots_path)
 
     out_path.mkdir(exist_ok=True, parents=True)
-    
+
     cats_ids = sorted(dataset.getCatIds())
     imgs_ids = sorted(dataset.getImgIds())
 
@@ -27,7 +27,7 @@ def coco_to_mask(annots_path: Path, out_path: Path,
         img_h = img_data["height"]
         img_w = img_data["width"]
         img_name = img_data["file_name"]
-        
+
         if i32:
             img = np.zeros((img_h, img_w), dtype=np.int32)
         else:
@@ -43,26 +43,28 @@ def coco_to_mask(annots_path: Path, out_path: Path,
                 cat = remap_dict[cat]
             if remap_id:
                 id = i
-            value = cat * class_multiplier
-            value = value + id if add_id else value
-            img[mask>0] = value
+            if binary:
+                value = 255
+            else:
+                value = cat * class_multiplier
+                value = value + id if add_id else value
+            img[mask > 0] = value
         img = Image.fromarray(img)
-        img.save(out_path.joinpath(img_name))   
-
+        img.save(out_path.joinpath(img_name))
 
 
 if __name__ == "__main__":
-    
-    parser = argparse.ArgumentParser(description="""
-    Visualize coco instances from a file or directory.
-    """, formatter_class=argparse.RawTextHelpFormatter)
 
+    parser = argparse.ArgumentParser(
+        description="Save mask images from a COCO dataset",
+    )
     parser.add_argument(
         "annotations",
         type=Path,
-        help="Annotations path"
+        help="COCO annotations path"
     )
     parser.add_argument(
+        "-o",
         "--output-path",
         type=Path,
         default=None,
@@ -94,15 +96,21 @@ if __name__ == "__main__":
         action="store_true",
         help="Save 2D int32 images"
     )
-    
+    parser.add_argument(
+        "--binary",
+        action="store_true",
+        help="Save binary masks"
+    )
+
     args = parser.parse_args()
 
     coco_to_mask(
-        annots_path = args.annotations,
-        out_path = args.output_path,
-        class_multiplier = args.class_multiplier,
-        remap_class = args.remap_class,
-        remap_id = args.remap_id,
-        add_id = args.add_id,
-        i32 = args.i32
+        annots_path=args.annotations,
+        out_path=args.output_path,
+        class_multiplier=args.class_multiplier,
+        remap_class=args.remap_class,
+        remap_id=args.remap_id,
+        add_id=args.add_id,
+        i32=args.i32,
+        binary=args.binary
     )
