@@ -3,6 +3,7 @@ from pathlib import Path
 
 import cv2
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 COLOR = (255, 255, 255)
 THICKNESS = 2
@@ -58,7 +59,7 @@ def visualize_yolo(
         boxes = read_annot(annots_path, images_path)
         draw_boxes(images_path, boxes, out_path, show)
     else:
-        for img_path in images_path.iterdir():
+        for img_path in tqdm(list(images_path.iterdir())):
             if img_path.suffix not in [".png", ".jpg"]:
                 continue
             boxes = read_annot(annots_path, img_path)
@@ -80,6 +81,7 @@ if __name__ == "__main__":
         help="Annotations path"
     )
     ap.add_argument(
+        "-o",
         "--output-path",
         type=Path,
         default=None,
