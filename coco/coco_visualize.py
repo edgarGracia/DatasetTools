@@ -13,15 +13,16 @@ import pycocotools.mask as Mask
 from pycocotools.coco import COCO
 
 
+DRAW_IMG = False
 
 DRAW_SEG = True
-SEG_ALPHA = 0.5
+SEG_ALPHA = 1.0
 
-DRAW_BB = True
+DRAW_BB = False
 BB_COLOR = (255,200,255)
 BB_THICKNESS = 3
 
-DRAW_LABEL = True
+DRAW_LABEL = False
 LABEL_SCALE = 1
 LABEL_BG_COLOR = (0,0,0)
 LABEL_THICKNESS = 2
@@ -31,7 +32,7 @@ FONT_COLOR = (255,255,255)
 FONT_BG_COLOR = (0,0,0)
 LABEL_FG_COLOR = (255,255,255)
 
-DRAW_POS = True
+DRAW_POS = False
 POSITION_SIZE = 3
 POSITION_BORDER = 1
 POSITION_FG_COLOR = (255,255,255)
@@ -47,6 +48,9 @@ def _draw_instances(img_path: Path(), instances: List[dict],
     out_path: Path = None, show: bool = False):
     
     img = cv2.imread(str(img_path))
+    
+    if not DRAW_IMG:
+        img = np.zeros_like(img)
 
     for ins in instances:
         box = ins["bbox"]
@@ -75,6 +79,7 @@ def _draw_instances(img_path: Path(), instances: List[dict],
         # Draw segmentation
         if DRAW_SEG:
             color = sns.color_palette(None, category_id+1)[category_id]
+            # color = sns.color_palette(None, ins["id"]+1)[ins["id"]]
             color_mask = np.full_like(img, [int(i*255) for i in color])
             img[mask!=0] = (
                 img[mask!=0] * (1 - SEG_ALPHA)
